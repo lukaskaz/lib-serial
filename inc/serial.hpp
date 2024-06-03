@@ -15,6 +15,23 @@ class serial
     virtual void flushBuffer() = 0;
 };
 
+class uart : public serial
+{
+  public:
+    explicit uart(const std::string&, speed_t);
+    ~uart();
+
+    size_t read(std::vector<uint8_t>&, uint32_t, uint32_t) override;
+    size_t read(std::vector<uint8_t>&, uint32_t) override;
+    size_t write(const std::vector<uint8_t>&) override;
+    void flushBuffer() override;
+
+  private:
+    const int32_t fd;
+
+    void configure(speed_t);
+};
+
 class usb : public serial
 {
   public:
@@ -30,5 +47,5 @@ class usb : public serial
     const int32_t fd;
 
     void disableFlowControl();
-    void configureSerial(speed_t);
+    void configure(speed_t);
 };

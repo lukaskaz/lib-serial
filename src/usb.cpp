@@ -16,7 +16,7 @@ usb::usb(const std::string& device, speed_t baud) :
     }
 
     disableFlowControl();
-    configureSerial(baud);
+    configure(baud);
     flushBuffer();
 }
 
@@ -69,7 +69,7 @@ inline void usb::disableFlowControl()
     ioctl(fd, TIOCMBIC, &bitsToClear);
 }
 
-inline void usb::configureSerial(speed_t baud)
+inline void usb::configure(speed_t baud)
 {
     termios options{};
     tcgetattr(fd, &options);
