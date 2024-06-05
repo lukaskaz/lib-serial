@@ -1,6 +1,8 @@
-name: Build check
+name: Check build/exec/tests
 
 on:
+  schedule:
+    - cron: "0 8 * * *"
   push:
     branches: [main]
   pull_request:
@@ -8,6 +10,36 @@ on:
       types: [opened, synchronize, reopened]
 
 jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Setting up
+      run: |
+        sudo apt install libboost-program-options-dev
+    - name: Checking out
+      uses: actions/checkout@v4
+    - name: Building target app
+      run: |
+        mkdir build && cd build && cmake .. && make
+      
+  execution:
+    name: Execution
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Checking out
+      uses: actions/checkout@v4
+    - name: Preparing binary
+      run: |
+        mkdir build && cd build && cmake .. && make
+    - name: Executing program
+      run: echo "Executing example code"
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -16,28 +48,9 @@ jobs:
     steps:
     - name: Checking out
       uses: actions/checkout@v4
-    - name: Testing
-      run: echo "Testing"
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-    - name: Checking out
-      uses: actions/checkout@v4
-    - name: Building target app
+    - name: Building tests
       run: |
-        mkdir build && cd build && cmake .. && make
-      
-  execution:
-    name: Report
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-    - name: Checking out
-      uses: actions/checkout@v4
-    - name: Executing program
-      run: echo "Executing"
+        cd tests && mkdir build && cd build && cmake .. && make
+    - name: Running tests
+      run: |
+        ctest --output-on-failure --test-dir tests/build/

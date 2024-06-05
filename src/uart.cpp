@@ -1,7 +1,7 @@
 #include "serial.hpp"
 
 #include <fcntl.h>
-#include <poll.h>
+#include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -27,22 +27,20 @@ uart::~uart()
 size_t uart::read(std::vector<uint8_t>& vect, uint32_t size, uint32_t timeoutMs)
 {
     size_t bytesToRead{size};
-    while (bytesToRead)
+    auto epollfd = epoll_create1(0);
+    if (epollfd >= 0)
     {
-        if (pollfd pollFd{fd, POLLIN, 0}; 0 < poll(&pollFd, 1, timeoutMs))
+        epoll_event event{.events = EPOLLIN, .data{.fd = fd}}, revent{};
+        epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
+
+        while (bytesToRead && 0 < epoll_wait(epollfd, &revent, 1, timeoutMs))
         {
-            if (pollFd.revents & POLLIN)
-            {
-                std::vector<uint8_t> data(bytesToRead);
-                auto bytes = ::read(fd, &data[0], bytesToRead);
-                vect.insert(vect.end(), data.begin(), data.begin() + bytes);
-                bytesToRead -= bytes;
-            }
+            std::vector<uint8_t> data(bytesToRead);
+            auto bytes = ::read(fd, &data[0], bytesToRead);
+            vect.insert(vect.end(), data.begin(), data.begin() + bytes);
+            bytesToRead -= bytes;
         }
-        else
-        {
-            break; // timeout or error occured, abort
-        }
+        close(epollfd);
     }
     return size - bytesToRead;
 }
