@@ -6,7 +6,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} \
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-  -pedantic \
   -Wall \
   -Wextra \
   -Wconversion \
@@ -18,5 +17,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
   -Wpointer-arith \
   -Wcast-qual \
   -Wno-strict-aliasing"
-#   -Wshadow \
+#  -pedantic \
+#  -Wshadow \
 )
