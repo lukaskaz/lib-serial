@@ -31,15 +31,18 @@ size_t usb::read(std::vector<uint8_t>& vect, uint32_t size, uint32_t timeoutMs)
     auto epollfd = epoll_create1(0);
     if (epollfd >= 0)
     {
-        epoll_event event{.events = EPOLLIN, .data{.fd = fd}}, revent{};
+        epoll_event event{.events = EPOLLIN, .data = {.fd = fd}}, revent{};
         epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
 
         while (bytesToRead && 0 < epoll_wait(epollfd, &revent, 1, timeoutMs))
         {
-            std::vector<uint8_t> data(bytesToRead);
-            auto bytes = ::read(fd, &data[0], bytesToRead);
-            vect.insert(vect.end(), data.begin(), data.begin() + bytes);
-            bytesToRead -= bytes;
+            if (revent.events & EPOLLIN)
+            {
+                std::vector<uint8_t> data(bytesToRead);
+                auto bytes = ::read(fd, &data[0], bytesToRead);
+                vect.insert(vect.end(), data.begin(), data.begin() + bytes);
+                bytesToRead -= bytes;
+            }
         }
         close(epollfd);
     }
