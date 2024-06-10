@@ -36,6 +36,7 @@ class usb : public serial
 {
   public:
     explicit usb(const std::string&, speed_t);
+    explicit usb(const std::string&, speed_t, bool);
     ~usb();
 
     size_t read(std::vector<uint8_t>&, uint32_t, uint32_t) override;
@@ -45,7 +46,10 @@ class usb : public serial
 
   private:
     const int32_t fd;
+    const bool debug;
 
     void disableFlowControl();
+    uint32_t bytesInInput();
     void configure(speed_t);
+    void showserialtraces(std::string_view, const std::vector<uint8_t>&);
 };
