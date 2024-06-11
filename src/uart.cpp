@@ -57,10 +57,20 @@ size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, bool debug = false)
     return read(vect, size, 100, debug);
 }
 
+size_t uart::read(std::vector<uint8_t>& vect, ssize_t size)
+{
+    return read(vect, size, 100, false);
+}
+
 size_t uart::write(const std::vector<uint8_t>& vect, bool debug = false)
 {
     showserialtraces("write", vect, debug);
     return ::write(fd, &vect[0], vect.size());
+}
+
+size_t uart::write(const std::vector<uint8_t>& vect)
+{
+    return write(vect, false);
 }
 
 void uart::flushBuffer()
@@ -68,9 +78,9 @@ void uart::flushBuffer()
     ioctl(fd, TCFLSH, TCIOFLUSH);
 }
 
-inline void usb::showserialtraces(std::string_view name,
-                                  const std::vector<uint8_t>& packet,
-                                  bool debug)
+inline void uart::showserialtraces(std::string_view name,
+                                   const std::vector<uint8_t>& packet,
+                                   bool debug)
 {
     if (debug)
     {

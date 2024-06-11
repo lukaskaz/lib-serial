@@ -55,7 +55,7 @@ class usb : public serial
     const int32_t fd;
 
     void disableFlowControl();
-    uint32_t bytesInBuffer();
+    ssize_t bytesInBuffer();
     void configure(speed_t);
     void showserialtraces(std::string_view, const std::vector<uint8_t>&, bool);
 };

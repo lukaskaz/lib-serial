@@ -97,10 +97,20 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, bool debug = false)
     return read(vect, size, 100, debug);
 }
 
+size_t usb::read(std::vector<uint8_t>& vect, ssize_t size)
+{
+    return read(vect, size, false);
+}
+
 size_t usb::write(const std::vector<uint8_t>& vect, bool debug = false)
 {
     showserialtraces("write", vect, debug);
     return ::write(fd, &vect[0], vect.size());
+}
+
+size_t usb::write(const std::vector<uint8_t>& vect)
+{
+    return write(vect, false);
 }
 
 void usb::flushBuffer()
@@ -108,9 +118,9 @@ void usb::flushBuffer()
     ioctl(fd, TCFLSH, TCIOFLUSH);
 }
 
-inline uint32_t usb::bytesInBuffer()
+inline ssize_t usb::bytesInBuffer()
 {
-    int32_t bytes{};
+    ssize_t bytes{};
     if (auto ret = ioctl(fd, FIONREAD, &bytes); ret < 0)
     {
         throw std::runtime_error("Cannot check data amount in buffer!");
