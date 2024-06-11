@@ -5,6 +5,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <iostream>
 #include <stdexcept>
 
 uart::uart(const std::string& device, speed_t baud) :
@@ -24,9 +25,12 @@ uart::~uart()
     close(fd);
 }
 
-size_t uart::read(std::vector<uint8_t>& vect, uint32_t size, uint32_t timeoutMs)
+size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
+                  bool debug = false)
 {
-    size_t bytesToRead{size};
+    showserialtraces("read", vect, debug);
+
+    auto bytesToRead{size};
     auto epollfd = epoll_create1(0);
     if (epollfd >= 0)
     {
@@ -48,19 +52,42 @@ size_t uart::read(std::vector<uint8_t>& vect, uint32_t size, uint32_t timeoutMs)
     return size - bytesToRead;
 }
 
-size_t uart::read(std::vector<uint8_t>& vect, uint32_t size)
+size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, bool debug = false)
 {
-    return read(vect, size, 100);
+    return read(vect, size, 100, debug);
 }
 
-size_t uart::write(const std::vector<uint8_t>& vect)
+size_t uart::write(const std::vector<uint8_t>& vect, bool debug = false)
 {
+    showserialtraces("write", vect, debug);
     return ::write(fd, &vect[0], vect.size());
 }
 
-inline void uart::flushBuffer()
+void uart::flushBuffer()
 {
     ioctl(fd, TCFLSH, TCIOFLUSH);
+}
+
+inline void usb::showserialtraces(std::string_view name,
+                                  const std::vector<uint8_t>& packet,
+                                  bool debug)
+{
+    if (debug)
+    {
+        uint8_t maxcolumn = 4, column{maxcolumn};
+        std::cout << std::dec << "\n> Name: " << name
+                  << ", size: " << packet.size() << std::hex << "\n";
+        for (const auto& byte : packet)
+        {
+            std::cout << "0x" << (uint32_t)byte << " ";
+            if (!--column)
+            {
+                column = maxcolumn;
+                std::cout << "\n";
+            }
+        }
+        std::cout << std::dec;
+    }
 }
 
 inline void uart::configure(speed_t baud)
