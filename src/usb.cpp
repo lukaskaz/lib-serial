@@ -8,11 +8,8 @@
 #include <iostream>
 #include <stdexcept>
 
-usb::usb(const std::string& device, speed_t baud) : usb(device, baud, false)
-{}
-
-usb::usb(const std::string& device, speed_t baud, bool debug) :
-    fd{open(device.c_str(), O_RDWR | O_NOCTTY)}, debug{debug}
+usb::usb(const std::string& device, speed_t baud) :
+    fd{open(device.c_str(), O_RDWR | O_NOCTTY)}
 {
     if (0 > fd)
     {
@@ -29,52 +26,80 @@ usb::~usb()
     close(fd);
 }
 
-size_t usb::read(std::vector<uint8_t>& vect, uint32_t size, uint32_t timeoutMs)
+size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
+                 bool debug = false)
 {
-    showserialtraces("read", vect);
-    size_t bytesToRead{size};
+    showserialtraces("read", vect, debug);
 
-    if (bytesInInput() >= size)
-    {
-        bytesToRead -= ::read(fd, &vect[0], bytesToRead);
-        if (bytesToRead)
+    static const auto readdata = [this](std::vector<uint8_t>& out,
+                                        ssize_t bytesToRead) {
+        auto bytesTotal{bytesToRead};
+        while (bytesToRead)
         {
-            throw std::runtime_error("Cannot read full data packet");
+            std::vector<uint8_t> data(bytesToRead);
+            auto bytes = ::read(fd, &data[0], bytesToRead);
+            if (bytes > 0)
+            {
+                out.insert(out.end(), data.begin(), data.begin() + bytes);
+                bytesToRead -= bytes;
+            }
+            else
+            {
+                throw std::runtime_error("Cannot read data");
+            }
         }
+        return bytesTotal - bytesToRead;
+    };
+    auto bytesToRead{size}, bytesRead{size};
+    auto bytesAvailable = bytesInBuffer();
+
+    if (bytesToRead <= bytesAvailable)
+    {
+        bytesRead = readdata(vect, bytesToRead);
     }
     else
     {
+        termios tm{};
+        tcgetattr(fd, &tm);
+        tm.c_cc[VTIME] = 0;
+        tm.c_cc[VMIN] = static_cast<uint8_t>(bytesToRead);
+        tcsetattr(fd, TCSANOW, &tm);
+
         auto epollfd = epoll_create1(0);
         if (epollfd >= 0)
         {
             epoll_event event{.events = EPOLLIN, .data = {.fd = fd}}, revent{};
             epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
 
-            while (bytesToRead &&
-                   0 < epoll_wait(epollfd, &revent, 1, timeoutMs))
+            if (auto ret = epoll_wait(epollfd, &revent, 1, timeoutMs); ret >= 0)
             {
-                if (revent.events & EPOLLIN)
+                if (ret == 0)
                 {
-                    std::vector<uint8_t> data(bytesToRead);
-                    auto bytes = ::read(fd, &data[0], bytesToRead);
-                    vect.insert(vect.end(), data.begin(), data.begin() + bytes);
-                    bytesToRead -= bytes;
+                    bytesAvailable = bytesInBuffer();
+                    bytesRead = readdata(vect, bytesAvailable);
+                }
+                else
+                {
+                    if (revent.events & EPOLLIN)
+                    {
+                        bytesRead = readdata(vect, bytesToRead);
+                    }
                 }
             }
             close(epollfd);
         }
     }
-    return size - bytesToRead;
+    return bytesRead;
 }
 
-size_t usb::read(std::vector<uint8_t>& vect, uint32_t size)
+size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, bool debug = false)
 {
-    return read(vect, size, 100);
+    return read(vect, size, 100, debug);
 }
 
-size_t usb::write(const std::vector<uint8_t>& vect)
+size_t usb::write(const std::vector<uint8_t>& vect, bool debug = false)
 {
-    showserialtraces("write", vect);
+    showserialtraces("write", vect, debug);
     return ::write(fd, &vect[0], vect.size());
 }
 
@@ -83,15 +108,19 @@ void usb::flushBuffer()
     ioctl(fd, TCFLSH, TCIOFLUSH);
 }
 
-inline uint32_t usb::bytesInInput()
+inline uint32_t usb::bytesInBuffer()
 {
-    uint32_t bytes{};
-    ioctl(fd, FIONREAD, &bytes);
+    int32_t bytes{};
+    if (auto ret = ioctl(fd, FIONREAD, &bytes); ret < 0)
+    {
+        throw std::runtime_error("Cannot check data amount in buffer!");
+    }
     return bytes;
 }
 
 inline void usb::showserialtraces(std::string_view name,
-                                  const std::vector<uint8_t>& packet)
+                                  const std::vector<uint8_t>& packet,
+                                  bool debug)
 {
     if (debug)
     {
@@ -124,6 +153,8 @@ inline void usb::configure(speed_t baud)
     cfsetispeed(&options, baud);
     cfsetospeed(&options, baud);
     cfmakeraw(&options);
+    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+    options.c_oflag &= ~OPOST;
     options.c_cc[VMIN] = 0;
     options.c_cc[VTIME] = 0;
     tcsetattr(fd, TCSANOW, &options);
