@@ -5,7 +5,6 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <stdexcept>
 
 uart::uart(const std::string& device, speed_t baud) :
@@ -26,10 +25,8 @@ uart::~uart()
 }
 
 size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
-                  bool debug = false)
+                  debug_t isdebug = debug_t::nodebug)
 {
-    showserialtraces("read", vect, debug);
-
     auto bytesToRead{size};
     auto epollfd = epoll_create1(0);
     if (epollfd >= 0)
@@ -49,55 +46,36 @@ size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
         }
         close(epollfd);
     }
+    showserialtraces("read", vect, isdebug);
     return size - bytesToRead;
 }
 
-size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, bool debug = false)
+size_t uart::read(std::vector<uint8_t>& vect, ssize_t size,
+                  debug_t isdebug = debug_t::nodebug)
 {
-    return read(vect, size, 100, debug);
+    return read(vect, size, 100, isdebug);
 }
 
 size_t uart::read(std::vector<uint8_t>& vect, ssize_t size)
 {
-    return read(vect, size, 100, false);
+    return read(vect, size, 100, debug_t::nodebug);
 }
 
-size_t uart::write(const std::vector<uint8_t>& vect, bool debug = false)
+size_t uart::write(const std::vector<uint8_t>& vect,
+                   debug_t isdebug = debug_t::nodebug)
 {
-    showserialtraces("write", vect, debug);
+    showserialtraces("write", vect, isdebug);
     return ::write(fd, &vect[0], vect.size());
 }
 
 size_t uart::write(const std::vector<uint8_t>& vect)
 {
-    return write(vect, false);
+    return write(vect, debug_t::nodebug);
 }
 
 void uart::flushBuffer()
 {
     ioctl(fd, TCFLSH, TCIOFLUSH);
-}
-
-inline void uart::showserialtraces(std::string_view name,
-                                   const std::vector<uint8_t>& packet,
-                                   bool debug)
-{
-    if (debug)
-    {
-        uint8_t maxcolumn = 4, column{maxcolumn};
-        std::cout << std::dec << "\n> Name: " << name
-                  << ", size: " << packet.size() << std::hex << "\n";
-        for (const auto& byte : packet)
-        {
-            std::cout << "0x" << (uint32_t)byte << " ";
-            if (!--column)
-            {
-                column = maxcolumn;
-                std::cout << "\n";
-            }
-        }
-        std::cout << std::dec;
-    }
 }
 
 inline void uart::configure(speed_t baud)

@@ -5,7 +5,6 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <stdexcept>
 
 usb::usb(const std::string& device, speed_t baud) :
@@ -27,10 +26,8 @@ usb::~usb()
 }
 
 size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
-                 bool debug = false)
+                 debug_t isdebug = debug_t::nodebug)
 {
-    showserialtraces("read", vect, debug);
-
     static const auto readdata = [this](std::vector<uint8_t>& out,
                                         ssize_t bytesToRead) {
         auto bytesTotal{bytesToRead};
@@ -89,12 +86,14 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
             close(epollfd);
         }
     }
+    showserialtraces("read", vect, isdebug);
     return bytesRead;
 }
 
-size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, bool debug = false)
+size_t usb::read(std::vector<uint8_t>& vect, ssize_t size,
+                 debug_t isdebug = debug_t::nodebug)
 {
-    return read(vect, size, 100, debug);
+    return read(vect, size, 100, isdebug);
 }
 
 size_t usb::read(std::vector<uint8_t>& vect, ssize_t size)
@@ -102,15 +101,16 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size)
     return read(vect, size, false);
 }
 
-size_t usb::write(const std::vector<uint8_t>& vect, bool debug = false)
+size_t usb::write(const std::vector<uint8_t>& vect,
+                  debug_t isdebug = debug_t::nodebug)
 {
-    showserialtraces("write", vect, debug);
+    showserialtraces("write", vect, isdebug);
     return ::write(fd, &vect[0], vect.size());
 }
 
 size_t usb::write(const std::vector<uint8_t>& vect)
 {
-    return write(vect, false);
+    return write(vect, debug_t::nodebug);
 }
 
 void usb::flushBuffer()
@@ -126,28 +126,6 @@ inline ssize_t usb::bytesInBuffer()
         throw std::runtime_error("Cannot check data amount in buffer!");
     }
     return bytes;
-}
-
-inline void usb::showserialtraces(std::string_view name,
-                                  const std::vector<uint8_t>& packet,
-                                  bool debug)
-{
-    if (debug)
-    {
-        uint8_t maxcolumn = 4, column{maxcolumn};
-        std::cout << std::dec << "\n> Name: " << name
-                  << ", size: " << packet.size() << std::hex << "\n";
-        for (const auto& byte : packet)
-        {
-            std::cout << "0x" << (uint32_t)byte << " ";
-            if (!--column)
-            {
-                column = maxcolumn;
-                std::cout << "\n";
-            }
-        }
-        std::cout << std::dec;
-    }
 }
 
 inline void usb::disableFlowControl()
