@@ -25,7 +25,7 @@ uart::~uart()
 }
 
 size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
-                  debug_t isdebug = debug_t::nodebug)
+                  debug_t isdebug)
 {
     auto bytesToRead{size};
     auto epollfd = epoll_create1(0);
@@ -50,27 +50,15 @@ size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
     return size - bytesToRead;
 }
 
-size_t uart::read(std::vector<uint8_t>& vect, ssize_t size,
-                  debug_t isdebug = debug_t::nodebug)
+size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, debug_t isdebug)
 {
     return read(vect, size, 100, isdebug);
 }
 
-size_t uart::read(std::vector<uint8_t>& vect, ssize_t size)
-{
-    return read(vect, size, 100, debug_t::nodebug);
-}
-
-size_t uart::write(const std::vector<uint8_t>& vect,
-                   debug_t isdebug = debug_t::nodebug)
+size_t uart::write(const std::vector<uint8_t>& vect, debug_t isdebug)
 {
     showserialtraces("write", vect, isdebug);
     return ::write(fd, &vect[0], vect.size());
-}
-
-size_t uart::write(const std::vector<uint8_t>& vect)
-{
-    return write(vect, debug_t::nodebug);
 }
 
 void uart::flushBuffer()
