@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-inline void serial::showserialtraces(std::string_view name,
-                                     const std::vector<uint8_t>& packet,
-                                     debug_t isdebug)
+void serial::showserialtraces(std::string_view name,
+                              const std::vector<uint8_t>& packet,
+                              debug_t isdebug)
 {
     if (isdebug == debug_t::usedebug)
     {
