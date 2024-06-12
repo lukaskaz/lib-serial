@@ -26,7 +26,7 @@ usb::~usb()
 }
 
 size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
-                 debug_t isdebug = debug_t::nodebug)
+                 debug_t isdebug)
 {
     static const auto readdata = [this](std::vector<uint8_t>& out,
                                         ssize_t bytesToRead) {
@@ -56,6 +56,11 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
     }
     else
     {
+        if (bytesToRead > UINT8_MAX)
+        {
+            throw std::runtime_error("Size of read bytes too big");
+        }
+
         termios tm{};
         tcgetattr(fd, &tm);
         tm.c_cc[VTIME] = 0;
@@ -90,27 +95,15 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
     return bytesRead;
 }
 
-size_t usb::read(std::vector<uint8_t>& vect, ssize_t size,
-                 debug_t isdebug = debug_t::nodebug)
+size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, debug_t isdebug)
 {
     return read(vect, size, 100, isdebug);
 }
 
-size_t usb::read(std::vector<uint8_t>& vect, ssize_t size)
-{
-    return read(vect, size, false);
-}
-
-size_t usb::write(const std::vector<uint8_t>& vect,
-                  debug_t isdebug = debug_t::nodebug)
+size_t usb::write(const std::vector<uint8_t>& vect, debug_t isdebug)
 {
     showserialtraces("write", vect, isdebug);
     return ::write(fd, &vect[0], vect.size());
-}
-
-size_t usb::write(const std::vector<uint8_t>& vect)
-{
-    return write(vect, debug_t::nodebug);
 }
 
 void usb::flushBuffer()
