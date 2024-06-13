@@ -21,18 +21,9 @@ class serial
     virtual size_t write(const std::vector<uint8_t>&, debug_t) = 0;
     virtual void flushBuffer() = 0;
 
-    size_t read(std::vector<uint8_t>& vect, ssize_t size)
-    {
-        return read(vect, size, debug_t::nodebug);
-    }
-    size_t read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeout)
-    {
-        return read(vect, size, timeout, debug_t::nodebug);
-    }
-    size_t write(const std::vector<uint8_t>& vect)
-    {
-        return write(vect, debug_t::nodebug);
-    }
+    size_t read(std::vector<uint8_t>&, ssize_t);
+    size_t read(std::vector<uint8_t>&, ssize_t, uint32_t);
+    size_t write(const std::vector<uint8_t>&);
 
   protected:
     void showserialtraces(std::string_view, const std::vector<uint8_t>&,
