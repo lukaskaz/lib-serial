@@ -2,6 +2,19 @@
 
 #include <iostream>
 
+size_t serial::read(std::vector<uint8_t>& vect, ssize_t size)
+{
+    return read(vect, size, debug_t::nodebug);
+}
+size_t serial::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeout)
+{
+    return read(vect, size, timeout, debug_t::nodebug);
+}
+size_t serial::write(const std::vector<uint8_t>& vect)
+{
+    return write(vect, debug_t::nodebug);
+}
+
 void serial::showserialtraces(std::string_view name,
                               const std::vector<uint8_t>& packet,
                               debug_t isdebug)
