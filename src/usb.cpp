@@ -47,7 +47,7 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
         }
         return bytesTotal - bytesToRead;
     };
-    auto bytesToRead{size}, bytesRead{size};
+    auto bytesToRead{size}, bytesRead{ssize_t{}};
     auto bytesAvailable = bytesInBuffer();
 
     if (bytesToRead <= bytesAvailable)
@@ -73,19 +73,19 @@ size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
             epoll_event event{.events = EPOLLIN, .data = {.fd = fd}}, revent{};
             epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
 
-            if (auto ret = epoll_wait(epollfd, &revent, 1, timeoutMs); ret >= 0)
+            int32_t ret{};
+            while ((ret = epoll_wait(epollfd, &revent, 1, timeoutMs)) < 0)
+                ;
+            if (ret == 0)
             {
-                if (ret == 0)
+                bytesAvailable = bytesInBuffer();
+                bytesRead = readdata(vect, bytesAvailable);
+            }
+            else
+            {
+                if (revent.events & EPOLLIN)
                 {
-                    bytesAvailable = bytesInBuffer();
-                    bytesRead = readdata(vect, bytesAvailable);
-                }
-                else
-                {
-                    if (revent.events & EPOLLIN)
-                    {
-                        bytesRead = readdata(vect, bytesToRead);
-                    }
+                    bytesRead = readdata(vect, bytesToRead);
                 }
             }
             close(epollfd);
