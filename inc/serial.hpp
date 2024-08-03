@@ -27,9 +27,16 @@ class serial
     size_t read(std::vector<uint8_t>&, ssize_t, uint32_t);
     size_t write(const std::vector<uint8_t>&);
 
+    std::string getdevice() const;
+    std::string getbaud() const;
+
   protected:
+    std::string device;
+    std::string baudname;
+
     void showserialtraces(std::string_view, const std::vector<uint8_t>&,
-                          debug_t);
+                          debug_t) const;
+    std::string getbaudname(speed_t) const;
 };
 
 class uart : public serial
