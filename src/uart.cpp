@@ -15,6 +15,8 @@ uart::uart(const std::string& device, speed_t baud) :
         throw std::runtime_error("Cannot initialize serial interface");
     }
 
+    serial::device = device;
+    serial::baudname = getbaudname(baud);
     configure(baud);
     flushBuffer();
 }
