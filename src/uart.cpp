@@ -7,7 +7,12 @@
 
 #include <stdexcept>
 
-uart::uart(const std::string& device, speed_t baud) :
+uart::uart(const std::string& device, speed_t baud) : uart(device)
+{
+    configure(baud);
+}
+
+uart::uart(const std::string& device) :
     fd{open(device.c_str(), O_RDWR | O_NOCTTY)}
 {
     if (0 > fd)
@@ -16,14 +21,17 @@ uart::uart(const std::string& device, speed_t baud) :
     }
 
     serial::device = device;
-    serial::baudname = getbaudname(baud);
-    configure(baud);
     flushBuffer();
 }
 
 uart::~uart()
 {
     close(fd);
+}
+
+void uart::setBaud(speed_t baud)
+{
+    configure(baud);
 }
 
 size_t uart::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
@@ -80,4 +88,6 @@ inline void uart::configure(speed_t baud)
     tcsetattr(fd, TCSANOW, &options);
     tcflush(fd, TCIFLUSH);
     fcntl(fd, F_SETFL, FNDELAY);
+
+    serial::baudname = getbaudname(baud);
 }

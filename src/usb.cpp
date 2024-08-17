@@ -7,7 +7,12 @@
 
 #include <stdexcept>
 
-usb::usb(const std::string& device, speed_t baud) :
+usb::usb(const std::string& device, speed_t baud) : usb(device)
+{
+    configure(baud);
+}
+
+usb::usb(const std::string& device) :
     fd{open(device.c_str(), O_RDWR | O_NOCTTY)}
 {
     if (0 > fd)
@@ -16,15 +21,18 @@ usb::usb(const std::string& device, speed_t baud) :
     }
 
     serial::device = device;
-    serial::baudname = getbaudname(baud);
     disableFlowControl();
-    configure(baud);
     flushBuffer();
 }
 
 usb::~usb()
 {
     close(fd);
+}
+
+void usb::setBaud(speed_t baud)
+{
+    configure(baud);
 }
 
 size_t usb::read(std::vector<uint8_t>& vect, ssize_t size, uint32_t timeoutMs,
@@ -143,4 +151,6 @@ inline void usb::configure(speed_t baud)
     tcsetattr(fd, TCSANOW, &options);
     tcflush(fd, TCIFLUSH);
     fcntl(fd, F_SETFL, FNDELAY);
+
+    serial::baudname = getbaudname(baud);
 }
