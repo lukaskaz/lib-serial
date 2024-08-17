@@ -18,6 +18,7 @@ class serial
     virtual ~serial()
     {}
 
+    virtual void setBaud(speed_t) = 0;
     virtual size_t read(std::vector<uint8_t>&, ssize_t, uint32_t, debug_t) = 0;
     virtual size_t read(std::vector<uint8_t>&, ssize_t, debug_t) = 0;
     virtual size_t write(const std::vector<uint8_t>&, debug_t) = 0;
@@ -42,9 +43,11 @@ class serial
 class uart : public serial
 {
   public:
+    explicit uart(const std::string&);
     explicit uart(const std::string&, speed_t);
     ~uart();
 
+    void setBaud(speed_t) override;
     size_t read(std::vector<uint8_t>&, ssize_t, uint32_t, debug_t) override;
     size_t read(std::vector<uint8_t>&, ssize_t, debug_t) override;
     size_t write(const std::vector<uint8_t>&, debug_t) override;
@@ -59,9 +62,11 @@ class uart : public serial
 class usb : public serial
 {
   public:
+    explicit usb(const std::string&);
     explicit usb(const std::string&, speed_t);
     ~usb();
 
+    void setBaud(speed_t) override;
     size_t read(std::vector<uint8_t>&, ssize_t, uint32_t, debug_t) override;
     size_t read(std::vector<uint8_t>&, ssize_t, debug_t) override;
     size_t write(const std::vector<uint8_t>&, debug_t) override;
