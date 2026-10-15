@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+#ifndef B256000
+#define B256000 256000
+#endif
+
 enum class debug_t
 {
     nodebug,
@@ -39,6 +43,8 @@ class serial
     void showserialtraces(std::string_view, const std::vector<uint8_t>&,
                           debug_t) const;
     std::string getbaudname(speed_t) const;
+    void configureBaud(int32_t, termios&, speed_t);
+    void setCustomBaud(int32_t, speed_t);
 };
 
 class uart : public serial
