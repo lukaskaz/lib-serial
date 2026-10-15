@@ -80,12 +80,10 @@ inline void uart::configure(speed_t baud)
 {
     termios options{};
     tcgetattr(fd, &options);
-    cfsetispeed(&options, baud);
-    cfsetospeed(&options, baud);
     cfmakeraw(&options);
     options.c_cc[VMIN] = 0;
     options.c_cc[VTIME] = 0;
-    tcsetattr(fd, TCSANOW, &options);
+    configureBaud(fd, options, baud);
     tcflush(fd, TCIFLUSH);
     fcntl(fd, F_SETFL, FNDELAY);
 
